@@ -140,7 +140,7 @@ export class ParserEngine {
 
 		let fileList = new Array<string>();
 
-		this.walkSync(this.distRoot, fileList, ".js");
+		this.walkSync(this.distRoot, fileList);
 
 		for (let i = 0; i < fileList.length; i++) {
 			let filename = fileList[i];
@@ -343,27 +343,23 @@ export class ParserEngine {
 	 * Recursively walking a directory structure and collect files
 	 * @param dir
 	 * @param filelist
-	 * @param fileExtension
 	 * @returns {Array<string>}
 	 */
-	public walkSync(dir: string, filelist: Array<string>, fileExtension?: string) {
+	public walkSync(dir: string, filelist: Array<string>) {
 		let scope = this;
 		let	files = fs.readdirSync(dir);
 		filelist = filelist || [];
-		fileExtension = fileExtension === undefined ? "" : fileExtension;
+		let fileExtension = "";
 
 		for (let i = 0; i < files.length; i++) {
 			let file = files[i];
 
 			if (fs.statSync(path.join(dir, file)).isDirectory()) {
-				filelist = this.walkSync(path.join(dir, file), filelist, fileExtension);
+				filelist = this.walkSync(path.join(dir, file), filelist);
 			}
 			else {
-				let tmpExt = path.extname(file);
-
-				if ((fileExtension.length > 0 && scope.matchExtension(fileExtension))
-					|| (fileExtension.length < 1)
-					|| (fileExtension == "*.*")) {
+				fileExtension = path.extname(file);
+				if (fileExtension.length > 0 && scope.matchExtension(fileExtension)) {
 					let fullFilename = path.join(dir, file);
 					filelist.push(fullFilename);
 				}
