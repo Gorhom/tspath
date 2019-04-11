@@ -4,14 +4,14 @@
     "module": "commonjs",
     "outDir": "./dist",
     "strict": false,
-    "baseUrl": "./",
+    "baseUrl": "./src",
     "declaration": true,
+    "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
   "include": [
-    "./",
-    "src/**/*"
+    "./src",
   ],
   "exclude": [
     "node_modules",
