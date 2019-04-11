@@ -27,6 +27,7 @@ import { ISettings } from "./type-definitions";
 export class ProjectOptions {
 	public outDir: string;
 	public baseUrl: string;
+	public include: string[];
 	public pathMappings: ISettings;
 
 	//TODO: Support fallbacks
@@ -40,6 +41,7 @@ export class ProjectOptions {
 		this.pathMappings = {};
 		this.outDir = tsconfigObj.outDir;
 		this.baseUrl = tsconfigObj.baseUrl;
+		this.include = tsconfigObj.include;
 		this.processMappings(tsconfigObj.paths);
 	}
 }

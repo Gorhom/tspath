@@ -170,6 +170,12 @@ export class ParserEngine {
 			alias = Utils.stripWildcard(alias);
 			mapping = Utils.stripWildcard(mapping);
 
+			// if tsconfig include has only one path, compiler will
+            // put its content on the root of ourDir
+            if (options.include && options.include.length === 1) {
+                mapping = mapping.replace(options.include[0], '')
+            }
+
 			// 2018-06-02: Workaround for bug with same prefix Aliases e.g @db and @dbCore
 			// Cut alias prefix for mapping comparison
 			let requirePrefix = jsRequire.substring(0, jsRequire.indexOf(path.sep))
@@ -288,6 +294,7 @@ export class ParserEngine {
 		this.tsConfig = JSON.parse(fileData);
 
 		let compilerOpt = this.tsConfig.compilerOptions;
+		compilerOpt.include = this.tsConfig.include;
 
 		let reqFields = [];
 		reqFields["baseUrl"] = this.baseUrl || compilerOpt.baseUrl;
