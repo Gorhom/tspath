@@ -3,6 +3,7 @@
   "version": "1.3.5",
   "description": "TypeScript Path Igniter resolves @paths specified in tsconfig",
   "scripts": {
+    "prepare": "yarn run build",
     "build": "tsc",
     "test": "mocha -r ts-node/register test/**.*/test.ts",
     "tspath": "node ./dist/tspath.js"
