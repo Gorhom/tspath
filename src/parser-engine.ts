@@ -28,12 +28,14 @@ let esprima        = require("esprima");
 let escodegen      = require("escodegen");
 let chalk          = require("chalk");
 
+import Project  				from "ts-simple-ast";
 import { Utils }                from "./utils";
 import { JsonCommentStripper }  from "./json-comment-stripper";
 import { ProjectOptions }       from "./project-options";
 import { TS_CONFIG }            from "./type-definitions";
 import { FILE_ENCODING }        from "./type-definitions";
 
+const project 	   = new Project();
 const log          = console.log;
 
 export class ParserEngine {
@@ -138,13 +140,18 @@ export class ParserEngine {
 		this.appRoot = path.resolve(this.projectPath, this.projectOptions.baseUrl);
 		this.distRoot = path.resolve(this.projectPath, this.projectOptions.outDir);
 
-		let fileList = new Array<string>();
+		let JSfileList = new Array<string>();
+		this.walkSync(this.distRoot, JSfileList, ".js");
+		for (let i = 0; i < JSfileList.length; i++) {
+			let filename = JSfileList[i];
+			this.processJSFile(filename);
+		}
 
-		this.walkSync(this.distRoot, fileList);
-
-		for (let i = 0; i < fileList.length; i++) {
-			let filename = fileList[i];
-			this.processFile(filename);
+		let TSFileList = new Array<string>();
+		this.walkSync(this.distRoot, TSFileList, ".ts");
+		for (var i = 0; i < TSFileList.length; i++) {
+			let filename = TSFileList[i];
+			this.processTSFile(filename);
 		}
 
 		log(chalk.bold("Total files processed:"), this.nrFilesProcessed);
@@ -202,6 +209,8 @@ export class ParserEngine {
 			}
 		}
 
+		this.nrPathsProcessed++;
+
 		return jsRequire;
 	}
 
@@ -221,8 +230,6 @@ export class ParserEngine {
 		if (!Utils.isEmpty(requireInJsFile) && Utils.fileHavePath(requireInJsFile)) {
 			let relativePath = this.getRelativePathForRequiredFile(sourceFilename, requireInJsFile);
 			resultNode = {type: "Literal", value: relativePath, raw: relativePath};
-
-			this.nrPathsProcessed++;
 		}
 
 		return resultNode;
@@ -232,7 +239,7 @@ export class ParserEngine {
 	 * Extracts all the requires from a single file and processes the paths
 	 * @param filename
 	 */
-	processFile(filename: string) {
+	processJSFile(filename: string) {
 		this.nrFilesProcessed++;
 
 		let scope = this;
@@ -264,6 +271,36 @@ export class ParserEngine {
 			log(chalk.bold.red("Unable to write file:"), filename);
 			this.exit();
 		}
+	}
+
+	/**
+	 * Extracts all the exports from a single declaration file and processes the paths
+	 * @param filename
+	 */
+	processTSFile(filename: string) {
+		this.nrFilesProcessed++;
+		let scope = this;
+
+		const fileToProcess = project.addExistingSourceFile(filename)
+		const exportDeclarations = fileToProcess.getExportDeclarations()
+		const importDeclarations = fileToProcess.getImportDeclarations();
+
+		exportDeclarations.forEach(exportDeclaration => {
+			const exportDeclarationValue = exportDeclaration.getModuleSpecifierValue(); 
+			if(exportDeclarationValue)
+			{
+				exportDeclaration.setModuleSpecifier(scope.getRelativePathForRequiredFile(filename, exportDeclarationValue));
+			}
+		})
+
+		importDeclarations.forEach(importDeclaration => {
+			const importDeclarationValue = importDeclaration.getModuleSpecifierValue(); 
+			if(importDeclarationValue)
+			{
+				importDeclaration.setModuleSpecifier(scope.getRelativePathForRequiredFile(filename, importDeclarationValue));
+			}
+		})
+		project.save();
 	}
 
 	/**
@@ -350,23 +387,24 @@ export class ParserEngine {
 	 * Recursively walking a directory structure and collect files
 	 * @param dir
 	 * @param filelist
+	 * @param fileExtension
 	 * @returns {Array<string>}
 	 */
-	public walkSync(dir: string, filelist: Array<string>) {
+	public walkSync(dir: string, filelist: Array<string>, fileExtension?: string) {
 		let scope = this;
 		let	files = fs.readdirSync(dir);
 		filelist = filelist || [];
-		let fileExtension = "";
+		fileExtension = fileExtension === undefined ? "" : fileExtension;
 
 		for (let i = 0; i < files.length; i++) {
 			let file = files[i];
 
 			if (fs.statSync(path.join(dir, file)).isDirectory()) {
-				filelist = this.walkSync(path.join(dir, file), filelist);
+				filelist = scope.walkSync(path.join(dir, file), filelist, fileExtension);
 			}
 			else {
-				fileExtension = path.extname(file);
-				if (fileExtension.length > 0 && scope.matchExtension(fileExtension)) {
+				var tmpExt = path.extname(file);
+				if (fileExtension.length > 0 && tmpExt === fileExtension) {
 					let fullFilename = path.join(dir, file);
 					filelist.push(fullFilename);
 				}
