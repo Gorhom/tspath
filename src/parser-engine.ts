@@ -140,19 +140,14 @@ export class ParserEngine {
 		this.appRoot = path.resolve(this.projectPath, this.projectOptions.baseUrl);
 		this.distRoot = path.resolve(this.projectPath, this.projectOptions.outDir);
 
-		let JSfileList = new Array<string>();
-		this.walkSync(this.distRoot, JSfileList, ".js");
-		for (let i = 0; i < JSfileList.length; i++) {
-			let filename = JSfileList[i];
-			this.processJSFile(filename);
-		}
-
-		let TSFileList = new Array<string>();
-		this.walkSync(this.distRoot, TSFileList, ".ts");
-		for (var i = 0; i < TSFileList.length; i++) {
-			let filename = TSFileList[i];
-			this.processTSFile(filename);
-		}
+		this.fileFilter.forEach(item => {
+			let list = new Array<string>();
+			this.walkSync(this.distRoot, list, item);
+			for (let i = 0; i < list.length; i++) {
+				let filename = list[i];
+				this.processFile(filename, item);
+			}
+		})
 
 		log(chalk.bold("Total files processed:"), this.nrFilesProcessed);
 		log(chalk.bold("Total paths processed:"), this.nrPathsProcessed);
@@ -233,6 +228,19 @@ export class ParserEngine {
 		}
 
 		return resultNode;
+	}
+
+	/**
+	 * Extracts all the exports from a single declaration file and processes the paths
+	 * @param filename
+	 * @param extension
+	 */
+	processFile(filename: string, extension: string) {
+		if(extension.includes("js")){
+			this.processJSFile(filename);
+		} else {
+			this.processTSFile(filename);
+		}
 	}
 
 	/**
@@ -404,7 +412,7 @@ export class ParserEngine {
 			}
 			else {
 				var tmpExt = path.extname(file);
-				if (fileExtension.length > 0 && tmpExt === fileExtension) {
+				if (fileExtension.length > 0 && tmpExt === fileExtension && this.matchExtension(tmpExt)) {
 					let fullFilename = path.join(dir, file);
 					filelist.push(fullFilename);
 				}

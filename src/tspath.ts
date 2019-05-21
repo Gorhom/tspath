@@ -30,7 +30,22 @@ let path       = require("path");
 let chalk      = require("chalk");
 let log        = console.log;
 let Confirm    = require('prompt-confirm');
-let yargs      = require("yargs").argv;
+let yargs      = require("yargs")
+									.option('baseUrl', {
+										demand: false,
+										describe: "override tsconfig baseUrl",
+									})
+									.option('force', {
+										alias: 'f',
+										demand: false,
+										describe: "force project path",
+									})
+									.option('ext', {
+										alias: 'e',
+										demand: false,
+										describe: "targeted file extension",
+									})
+									.argv;
 
 import { ParserEngine }     from "./parser-engine";
 import { ParentFileFinder } from "./parent-file-finder";
@@ -46,7 +61,7 @@ export class TSPath {
 		log(chalk.yellow("TSPath " + pkg.version));
 		let args = process.argv.slice(2);
 		let param = args[0];
-		let filter = ["js"];
+		let filter = ["js", "d.ts"];
 		let force: boolean = (yargs.force || yargs.f);
 		let projectPath = process.cwd();
 		let compactOutput = yargs.preserve ? false : true;
@@ -54,8 +69,8 @@ export class TSPath {
 
 		let scope = this;
 
-		if (yargs.ext || yargs.filter) {
-			let argFilter = yargs.ext ? yargs.ext : yargs.filter;
+		if (yargs.ext) {
+			let argFilter = yargs.ext;
 			filter = argFilter.split(",").map((ext) => {
 				return ext.replace(/\s/g, "");
 			});
